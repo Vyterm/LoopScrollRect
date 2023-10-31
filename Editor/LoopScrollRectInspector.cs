@@ -6,8 +6,8 @@ using UnityEditor;
 public class LoopScrollRectInspector : Editor
 {
     int index = 0;
-    float speed = 1000, time = 1;
-    public override void OnInspectorGUI ()
+    float speed = 1000;
+	public override void OnInspectorGUI ()
     {
         base.OnInspectorGUI();
         EditorGUILayout.Space();
@@ -23,36 +23,26 @@ public class LoopScrollRectInspector : Editor
         if (GUILayout.Button("Refresh"))
         {
             scroll.RefreshCells();
-        }
-        if(GUILayout.Button("Refill"))
-        {
-            scroll.RefillCells();
-        }
-        if(GUILayout.Button("RefillFromEnd"))
-        {
-            scroll.RefillCellsFromEnd();
-        }
+		}
+		if(GUILayout.Button("Refill"))
+		{
+			scroll.RefillCells();
+		}
+		if(GUILayout.Button("RefillFromEnd"))
+		{
+			scroll.RefillCellsFromEnd();
+		}
         EditorGUILayout.EndHorizontal();
 
         EditorGUIUtility.labelWidth = 45;
         float w = (EditorGUIUtility.currentViewWidth - 100) / 2;
+        EditorGUILayout.BeginHorizontal();
         index = EditorGUILayout.IntField("Index", index, GUILayout.Width(w));
-        EditorGUILayout.BeginHorizontal();
-        EditorGUIUtility.labelWidth = 60;
-        speed = EditorGUILayout.FloatField("    Speed", speed, GUILayout.Width(w+15));
-        if(GUILayout.Button("Scroll With Speed", GUILayout.Width(130)))
+        speed = EditorGUILayout.FloatField("Speed", speed, GUILayout.Width(w));
+        if(GUILayout.Button("Scroll", GUILayout.Width(45)))
         {
-            scroll.ScrollToCell(index, speed);
+            scroll.SrollToCell(index, speed);
         }
         EditorGUILayout.EndHorizontal();
-        
-        EditorGUILayout.BeginHorizontal();
-        EditorGUIUtility.labelWidth = 60;
-        time = EditorGUILayout.FloatField("    Time", time, GUILayout.Width(w+15));
-        if(GUILayout.Button("Scroll Within Time", GUILayout.Width(130)))
-        {
-            scroll.ScrollToCellWithinTime(index, time);
-        }
-        EditorGUILayout.EndHorizontal();
-    }
+	}
 }

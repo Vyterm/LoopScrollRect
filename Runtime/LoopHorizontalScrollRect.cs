@@ -7,9 +7,9 @@ namespace UnityEngine.UI
     [DisallowMultipleComponent]
     public class LoopHorizontalScrollRect : LoopScrollRect
     {
-        protected override float GetSize(RectTransform item, bool includeSpacing)
+        protected override float GetSize(RectTransform item)
         {
-            float size = includeSpacing ? contentSpacing : 0;
+            float size = contentSpacing;
             if (m_GridLayout != null)
             {
                 size += m_GridLayout.cellSize.x;
@@ -18,18 +18,12 @@ namespace UnityEngine.UI
             {
                 size += LayoutUtility.GetPreferredWidth(item);
             }
-            size *= m_Content.localScale.x;
             return size;
         }
 
         protected override float GetDimension(Vector2 vector)
         {
             return -vector.x;
-        }
-        
-        protected override float GetAbsDimension(Vector2 vector)
-        {
-            return vector.x;
         }
 
         protected override Vector2 GetVector(float value)
@@ -41,22 +35,20 @@ namespace UnityEngine.UI
         {
             direction = LoopScrollRectDirection.Horizontal;
             base.Awake();
-            if (m_Content)
+
+            GridLayoutGroup layout = content.GetComponent<GridLayoutGroup>();
+            if (layout != null && layout.constraint != GridLayoutGroup.Constraint.FixedRowCount)
             {
-                GridLayoutGroup layout = m_Content.GetComponent<GridLayoutGroup>();
-                if (layout != null && layout.constraint != GridLayoutGroup.Constraint.FixedRowCount)
-                {
-                    Debug.LogError("[LoopScrollRect] unsupported GridLayoutGroup constraint");
-                }
+                Debug.LogError("[LoopHorizontalScrollRect] unsupported GridLayoutGroup constraint");
             }
         }
 
-        protected override bool UpdateItems(ref Bounds viewBounds, ref Bounds contentBounds)
+        protected override bool UpdateItems(Bounds viewBounds, Bounds contentBounds)
         {
             bool changed = false;
 
             // special case: handling move several page in one frame
-            if ((viewBounds.size.x < contentBounds.min.x - viewBounds.max.x) && itemTypeEnd > itemTypeStart)
+            if (viewBounds.max.x < contentBounds.min.x && itemTypeEnd > itemTypeStart)
             {
                 float currentSize = contentBounds.size.x;
                 float elementSize = (currentSize - contentSpacing * (CurrentLines - 1)) / CurrentLines;
@@ -76,14 +68,14 @@ namespace UnityEngine.UI
                 itemTypeEnd = itemTypeStart;
 
                 float offset = offsetCount * (elementSize + contentSpacing);
-                m_Content.anchoredPosition -= new Vector2(offset + (reverseDirection ? currentSize : 0), 0);
+                content.anchoredPosition -= new Vector2(offset + (reverseDirection ? currentSize : 0), 0);
                 contentBounds.center -= new Vector3(offset + currentSize / 2, 0, 0);
                 contentBounds.size = Vector3.zero;
 
                 changed = true;
             }
 
-            if ((viewBounds.min.x - contentBounds.max.x > viewBounds.size.x)  && itemTypeEnd > itemTypeStart)
+            if (viewBounds.min.x > contentBounds.max.x && itemTypeEnd > itemTypeStart)
             {
                 int maxItemTypeStart = -1;
                 if (totalCount >= 0)
@@ -110,41 +102,17 @@ namespace UnityEngine.UI
                 itemTypeEnd = itemTypeStart;
 
                 float offset = offsetCount * (elementSize + contentSpacing);
-                m_Content.anchoredPosition += new Vector2(offset + (reverseDirection ? 0 : currentSize), 0);
+                content.anchoredPosition += new Vector2(offset + (reverseDirection ? 0 : currentSize), 0);
                 contentBounds.center += new Vector3(offset + currentSize / 2, 0, 0);
                 contentBounds.size = Vector3.zero;
 
                 changed = true;
             }
 
-            if (viewBounds.max.x > contentBounds.max.x - m_ContentRightPadding)
-            {
-                float size = NewItemAtEnd(), totalSize = size;
-                while (size > 0 && viewBounds.max.x > contentBounds.max.x - m_ContentRightPadding + totalSize)
-                {
-                    size = NewItemAtEnd();
-                    totalSize += size;
-                }
-                if (totalSize > 0)
-                    changed = true;
-            }
-
-            if (viewBounds.min.x < contentBounds.min.x + m_ContentLeftPadding)
-            {
-                float size = NewItemAtStart(), totalSize = size;
-                while (size > 0 && viewBounds.min.x < contentBounds.min.x + m_ContentLeftPadding - totalSize)
-                {
-                    size = NewItemAtStart();
-                    totalSize += size;
-                }
-                if (totalSize > 0)
-                    changed = true;
-            }
-
-            if (viewBounds.max.x < contentBounds.max.x - threshold - m_ContentRightPadding)
+            if (viewBounds.max.x < contentBounds.max.x - threshold)
             {
                 float size = DeleteItemAtEnd(), totalSize = size;
-                while (size > 0 && viewBounds.max.x < contentBounds.max.x - threshold - m_ContentRightPadding - totalSize)
+                while (size > 0 && viewBounds.max.x < contentBounds.max.x - threshold - totalSize)
                 {
                     size = DeleteItemAtEnd();
                     totalSize += size;
@@ -153,12 +121,36 @@ namespace UnityEngine.UI
                     changed = true;
             }
 
-            if (viewBounds.min.x > contentBounds.min.x + threshold + m_ContentLeftPadding)
+            if (viewBounds.min.x > contentBounds.min.x + threshold)
             {
                 float size = DeleteItemAtStart(), totalSize = size;
-                while (size > 0 && viewBounds.min.x > contentBounds.min.x + threshold + m_ContentLeftPadding + totalSize)
+                while (size > 0 && viewBounds.min.x > contentBounds.min.x + threshold + totalSize)
                 {
                     size = DeleteItemAtStart();
+                    totalSize += size;
+                }
+                if (totalSize > 0)
+                    changed = true;
+            }
+
+            if (viewBounds.max.x > contentBounds.max.x)
+            {
+                float size = NewItemAtEnd(), totalSize = size;
+                while (size > 0 && viewBounds.max.x > contentBounds.max.x + totalSize)
+                {
+                    size = NewItemAtEnd();
+                    totalSize += size;
+                }
+                if (totalSize > 0)
+                    changed = true;
+            }
+
+            if (viewBounds.min.x < contentBounds.min.x)
+            {
+                float size = NewItemAtStart(), totalSize = size;
+                while (size > 0 && viewBounds.min.x < contentBounds.min.x - totalSize)
+                {
+                    size = NewItemAtStart();
                     totalSize += size;
                 }
                 if (totalSize > 0)
